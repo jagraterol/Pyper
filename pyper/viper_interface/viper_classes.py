@@ -1,7 +1,7 @@
 import usb
-import numpy as np
 import array
 import struct
+import datetime
 
 from ..io.viper_crc16 import viper_crc16
 from ..io.io_utils import extract_data_from_frame
@@ -63,6 +63,8 @@ class PolhemusViper:
 
     pno_mode = {"standard": 0, "accelerated": 1}
 
+    continuous_framecount = {"leave_as_is": 0, "reset": 1}
+
     def connect(self, return_endpoint=False):
 
         dev = usb.core.find(
@@ -121,5 +123,61 @@ class PolhemusViper:
             df = extract_data_from_frame(resp)
         return df
 
+    def start_continuous(self, dev, ep, pno_mode="standard", framecount="reset"):
+        max_size = 4 + 4 + 8 * 16 + 4  # Max number of sensors
+        preamble = self.viper_command_preamble
+        seuid = 0
+        cmd = self.cmd_viper["cmd_continuous_pno"]
+        cmd_action = self.cmd_actions["cmd_action_set"]
+        arg1 = 0
+        payload = self.continuous_framecount[framecount]
+        pno_mode = self.pno_mode[pno_mode]
+        crc_size = 0
 
-    def start_continuous()
+        cmd_frame = [seuid, cmd, cmd_action, arg1, pno_mode, payload, crc_size]
+        cmd_packed = struct.pack(f"<{len(cmd_frame)}I", *cmd_frame)
+        cmd_size = len(cmd_packed)  # Calculate the msg length
+        cmd_size_bytes = struct.pack(f"<I", cmd_size)
+
+        command_sequence = (
+            preamble + cmd_size_bytes + cmd_packed[:-4]
+        )  # Remove the crc from the end
+
+        # Create int list to calculate crc16
+        command_sequence_list = [int(x) for x in command_sequence]
+        crc16 = viper_crc16(command_sequence_list)  # Calculate crc16
+        crc16_bytes = struct.pack(f"<{len(crc16)}B", *crc16)
+        crc16_list = [int(x) for x in crc16_bytes]
+        msg = array.array("B", command_sequence_list + crc16_list)
+
+        # Communicate with the device
+        dev.write(0x02, msg, 200)
+
+        resp = dev.read(ep, max_size, 200)
+        resp_list = resp.tolist()
+        resp_crc16 = viper_crc16(resp_list[:-4])  # Remove the crc from the end
+        resp_crc16_bytes = struct.pack(f"<{len(resp_crc16)}B", *resp_crc16)
+
+        if resp_crc16_bytes != bytes(resp_list[-4:]):
+            print("CRC16 error")
+        else:
+            print(resp_list)
+
+    def read_continuous(self, dev, ep, stop_condition):
+        output_list = []
+        max_size = 4 + 4 + 8 * 16 + 4
+
+        while not stop_condition.is_set():
+            resp = dev.read(ep, max_size, 200)
+            timestamp = datetime.datetime.now().isoformat()
+            resp_list = resp.tolist()
+            resp_crc16 = viper_crc16(resp_list[:-4])  # Remove the crc from the end
+            resp_crc16_bytes = struct.pack(f"<{len(resp_crc16)}B", *resp_crc16)
+
+            if resp_crc16_bytes != bytes(resp_list[-4:]):
+                print("CRC16 error")
+                del resp
+            else:
+                output_list.append((timestamp, resp_list))
+        return output_list
+        # print(resp_list)
