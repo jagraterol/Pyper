@@ -20,7 +20,7 @@ def extract_data_from_frame(frame):
 
     timestamp = datetime.datetime.now().isoformat()
 
-    # df = pd.DataFrame()
+    df = pd.DataFrame()
     out_list = []
     for i in range(n_sensors[0]):
         in_list = []
