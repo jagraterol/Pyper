@@ -2,71 +2,92 @@ import usb
 import array
 import struct
 import datetime
+import json
+import os
 
 from ..io.viper_crc16 import viper_crc16
 from ..io.io_utils import extract_data_from_frame
 
 
 class PolhemusViper:
-    polhemus_usb_vid = 0xF44
-    viper_usb_pid = 0xBF01
+    """
+    Polhemus Viper class to control a Polhemus Viper Device
+    """
+
+    polhemus_usb_vid = 0xF44  # Polhemus USB Vendor ID
+    viper_usb_pid = 0xBF01  # Polhemus USB Product ID
     # [86, 80, 82, 67]  Preamble for commands "VPRC"
-    viper_command_preamble = b"\x56\x50\x52\x43"
+    viper_command_preamble = (
+        b"\x56\x50\x52\x43"  # [86, 80, 82, 67]  Preamble for commands "VPRC"
+    )
     viper_pno_preamble = b"\x56\x50\x52\x50"  # [86, 80, 82, 80] "VPRP"
-    last_msg = None
+    class_path = os.path.dirname(os.path.realpath(__file__))
 
-    cmd_actions = {
-        "cmd_action_set": 0,
-        "cmd_action_get": 1,
-        "cmd_action_reset": 2,
-        "cmd_action_ack": 3,
-        "cmd_action_nak": 4,
-        "cmd_action_nak_warning": 5,
-    }
+    with open(os.path.join(class_path, "config.json"), "r") as f:
+        conf = json.load(f)
 
-    cmd_viper = {
-        "cmd_hemisphere": 0,
-        "cmd_fitler": 1,
-        "cmd_tip_offset": 2,
-        "cmd_increment": 3,
-        "cmd_boresight": 4,
-        "cmd_sensor_whoami": 5,
-        "cmd_framerate": 6,
-        "cmd_units": 7,
-        "cmd_src_rotation": 8,
-        "cmd_sync_mode": 9,
-        "cmd_station_map": 10,
-        "cmd_stylus": 11,
-        "cmd_seuid": 12,
-        "cmd_dual_output": 13,
-        "cmd_serial_config": 14,
-        "cmd_block_cfg": 15,
-        "cmd_frame_count": 16,
-        "cmd_bit": 17,
-        "cmd_single_pno": 18,
-        "cmd_continuous_pno": 19,
-        "cmd_whoami": 20,
-        "cmd_initialize": 21,
-        "cmd_persist": 22,
-        "cmd_enable_map": 23,
-        "cmd_ftt_mode": 24,
-        "cmd_map_status": 25,
-        "cmd_sensor_blockcfg": 26,
-        "cmd_source_cfg": 27,
-        "cmd_predfilter_cfg": 28,
-        "cmd_predfilter_ext": 29,
-        "cmd_src_select": 30,
-        "cmd_sns_origin": 31,
-        "cmd_sns_virtual": 32,
-        "cmd_src_whoami": 33,
-    }  # For a command reference refer to ViperInterface.h
+    def __init__(self, seuid=0) -> None:
+        self.seuid = seuid
 
-    pno_mode = {"standard": 0, "accelerated": 1}
+    def _construct_message(
+        self, viper_command, cmd_action, arg1=None, arg2=None, payload=None
+    ):
+        """
+        Construct a general message to send to the Polhemus Viper. This function should not be called directly.
+        """
+        viper_cmd = self.conf["cmd_viper"][viper_command].get("cmd_number")
+        cmd_action = self.conf["cmd_actions"][cmd_action]
+        arg1 = self.conf["cmd_viper"][viper_command].get("arg1", {}).get(arg1, 0)
+        arg2 = self.conf["cmd_viper"][viper_command].get("arg2", {}).get(arg2, 0)
+        crc_size = 0
+        if payload is None:
+            cmd_frame = [self.seuid, viper_cmd, cmd_action, arg1, arg2, crc_size]
+        else:
+            payload = self.conf["cmd_viper"][viper_command]["payload"][payload]
+            cmd_frame = [
+                self.seuid,
+                viper_cmd,
+                cmd_action,
+                arg1,
+                arg2,
+                payload,
+                crc_size,
+            ]
+        cmd_packed = struct.pack(f"<{len(cmd_frame)}I", *cmd_frame)
+        cmd_size = len(cmd_packed)  # Calculate the msg length
+        cmd_size_bytes = struct.pack(f"<I", cmd_size)
 
-    continuous_framecount = {"leave_as_is": 0, "reset": 1}
+        command_sequence = (
+            self.viper_command_preamble + cmd_size_bytes + cmd_packed[:-4]
+        )  # Remove the crc from the end
+        # Create int list to calculate crc16
+        command_sequence_list = [int(x) for x in command_sequence]
 
-    def connect(self, return_endpoint=False):
+        crc16 = viper_crc16(command_sequence_list)  # Calculate crc16
+        crc16_bytes = struct.pack(f"<{len(crc16)}B", *crc16)
+        crc16_list = [int(x) for x in crc16_bytes]
+        msg = array.array("B", command_sequence_list + crc16_list)
+        return msg
 
+    def _write_and_read(self, msg):
+        """
+        Write a message to the Polhemus Viper and read from the endpoint. This function should not be called directly.
+        """
+        self.dev.write(0x02, msg, 200)
+        resp = self.dev.read(self.endpoint, self.conf["max_size"], 200)
+        resp_list = resp.tolist()
+        resp_crc16 = viper_crc16(resp_list[:-4])  # Remove the crc from the end
+        resp_crc16_bytes = struct.pack(f"<{len(resp_crc16)}B", *resp_crc16)
+        if resp_crc16_bytes != bytes(resp_list[-4:]):
+            print("CRC16 error")
+            return None
+        else:
+            return resp_list
+
+    def connect(self):
+        """
+        Connect to the Polhemus device using PyUSB
+        """
         dev = usb.core.find(
             idVendor=self.polhemus_usb_vid, idProduct=self.viper_usb_pid
         )
@@ -74,97 +95,50 @@ class PolhemusViper:
             raise ValueError("Device not found")
 
         dev.set_configuration()
+        self.dev = dev
+        self.endpoint = self.dev[0][(0, 0)][0]
 
-        if return_endpoint == True:
-            ep = dev[0][(0, 0)][0]
-            return dev, ep
+    def get_single_pno(self, pno_mode="standard"):
+        """
+        Function that reads a single PNO from Polhemus Viper and prints results as df
 
-        return dev
+        Parameters
+        --------
+        pno_mode : str
+            Type of PNO frame to return. Accepts "standard" and "accelerated". "accelerated" also returns the acceleration of the sensors in addition to the position and orientation. Default is "standard"
 
-    def get_single_pno(self, dev, ep, pno_mode="standard"):
-        max_size = 4 + 4 + 8 * 16 + 4  # Max number of sensors
-        preamble = self.viper_command_preamble  # In bytes
-        seuid = 0  # We just have one Viper device
-        cmd = self.cmd_viper["cmd_single_pno"]
-        cmd_action = self.cmd_actions[
-            "cmd_action_get"
-        ]  # Only action available for single pno
-        arg1 = 0  # not used for single pno
-        pno_mode = self.pno_mode[pno_mode]
-        crc_size = 4  # Standard crc size
+        Returns
+        --------
+        df: pd.DataFrame
+        """
+        msg = self._construct_message(
+            viper_command="cmd_single_pno", cmd_action="cmd_action_get", arg2=pno_mode
+        )
+        resp = self._write_and_read(msg)
 
-        cmd_frame = [seuid, cmd, cmd_action, arg1, pno_mode, crc_size]
-        cmd_packed = struct.pack(f"<{len(cmd_frame)}I", *cmd_frame)
-        cmd_size = len(cmd_packed)  # Calculate the msg length
-        cmd_size_bytes = struct.pack(f"<I", cmd_size)
-
-        command_sequence = (
-            preamble + cmd_size_bytes + cmd_packed[:-4]
-        )  # Remove the crc from the end
-
-        # Create int list to calculate crc16
-        command_sequence_list = [int(x) for x in command_sequence]
-        crc16 = viper_crc16(command_sequence_list)  # Calculate crc16
-        crc16_bytes = struct.pack(f"<{len(crc16)}B", *crc16)
-        crc16_list = [int(x) for x in crc16_bytes]
-        msg = array.array("B", command_sequence_list + crc16_list)
-
-        # Communicate with the device
-        dev.write(0x02, msg, 200)
-
-        resp = dev.read(ep, max_size, 200)
-        resp_list = resp.tolist()
-        resp_crc16 = viper_crc16(resp_list[:-4])  # Remove the crc from the end
-        resp_crc16_bytes = struct.pack(f"<{len(resp_crc16)}B", *resp_crc16)
-
-        if resp_crc16_bytes != bytes(resp_list[-4:]):
-            print("CRC16 error")
+        if resp is None:
+            pass
         else:
             df = extract_data_from_frame(resp)
-        return df
+            return df
 
-    def start_continuous(self, dev, ep, pno_mode="standard", framecount="reset"):
-        max_size = 4 + 4 + 8 * 16 + 4  # Max number of sensors
-        preamble = self.viper_command_preamble
-        seuid = 0
-        cmd = self.cmd_viper["cmd_continuous_pno"]
-        cmd_action = self.cmd_actions["cmd_action_set"]
-        arg1 = 0
-        payload = self.continuous_framecount[framecount]
-        pno_mode = self.pno_mode[pno_mode]
-        crc_size = 0
+    def start_continuous(self, pno_mode="standard", frame_counting="reset_frames"):
+        msg = self._construct_message(
+            viper_command="cmd_continuous_pno",
+            cmd_action="cmd_action_set",
+            arg2=pno_mode,
+            payload=frame_counting,
+        )
 
-        cmd_frame = [seuid, cmd, cmd_action, arg1, pno_mode, payload, crc_size]
-        cmd_packed = struct.pack(f"<{len(cmd_frame)}I", *cmd_frame)
-        cmd_size = len(cmd_packed)  # Calculate the msg length
-        cmd_size_bytes = struct.pack(f"<I", cmd_size)
-
-        command_sequence = (
-            preamble + cmd_size_bytes + cmd_packed[:-4]
-        )  # Remove the crc from the end
-
-        # Create int list to calculate crc16
-        command_sequence_list = [int(x) for x in command_sequence]
-        crc16 = viper_crc16(command_sequence_list)  # Calculate crc16
-        crc16_bytes = struct.pack(f"<{len(crc16)}B", *crc16)
-        crc16_list = [int(x) for x in crc16_bytes]
-        msg = array.array("B", command_sequence_list + crc16_list)
-
-        # Communicate with the device
-        dev.write(0x02, msg, 200)
-
-        resp = dev.read(ep, max_size, 200)
-        resp_list = resp.tolist()
-        resp_crc16 = viper_crc16(resp_list[:-4])  # Remove the crc from the end
-        resp_crc16_bytes = struct.pack(f"<{len(resp_crc16)}B", *resp_crc16)
-
-        if resp_crc16_bytes != bytes(resp_list[-4:]):
-            print("CRC16 error")
+        resp = self._write_and_read(msg)
+        if resp is None:
+            pass
         else:
-            print(resp_list)
+            print(resp)
 
     def read_continuous(self, dev, ep, stop_condition):
         output_list = []
+        output_dict = dict()
         max_size = 4 + 4 + 8 * 16 + 4
 
         while not stop_condition.is_set():
@@ -179,5 +153,15 @@ class PolhemusViper:
                 del resp
             else:
                 output_list.append((timestamp, resp_list))
+                output_dict[timestamp] = resp_list
         return output_list
         # print(resp_list)
+
+    def stop_continuous(self):
+        msg = self._construct_message(viper_command="cmd_continuous_pno", cmd_action="cmd_action_reset")
+        resp = self._write_and_read(msg)
+        if resp is None:
+            pass
+        else:
+            print(resp)
+        
