@@ -126,7 +126,6 @@ class PolhemusViper:
                     resp, pno_mode=pno_mode, timestamp=timestamp
                 )
             elif pno_mode == "acceleration":
-                print(resp)
                 df = io_utils.extract_data_from_acceleration_frame(
                     resp,
                     sampling_mode="single",
@@ -155,15 +154,7 @@ class PolhemusViper:
 
         while not stop_condition.is_set():
             resp, timestamp = self._write_and_read(msg=None, continuous=True)
-            # resp= self.dev.read(self.endpoint, self.conf["max_size"], 200)
-            # timestamp = datetime.datetime.now().isoformat()
-            # resp_list = resp.tolist()
-            # resp_crc16 = viper_crc16(resp_list[:-4])  # Remove the crc from the end
-            # resp_crc16_bytes = struct.pack(f"<{len(resp_crc16)}B", *resp_crc16)
 
-            # if resp_crc16_bytes != bytes(resp_list[-4:]):
-            # print("CRC16 error")
-            # del resp
             if resp is None:
                 pass
             else:
@@ -193,7 +184,7 @@ class PolhemusViper:
                 x
                 for x in self.conf["viper_position_units"].items()
                 if io_utils.intlist_to_int_4bytes(resp[-12 : -12 + 4]) in x
-            ]  # Ger position
+            ]  # Get position
             orientation = [
                 x
                 for x in self.conf["viper_orientation_units"].items()

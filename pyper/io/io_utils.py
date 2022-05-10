@@ -184,25 +184,25 @@ def extract_data_from_acceleration_frame(
         in_list.append(  # Start calculating the acceleration
             fract_to_float(
                 intlist_to_int_2bytes(frame_dat[start_index + 20 : start_index + 22]),
-                conv_factor=16.0,
+                factor=16.0,
             )
         )
         in_list.append(
             fract_to_float(
                 intlist_to_int_2bytes(frame_dat[start_index + 22 : start_index + 24]),
-                conv_factor=16.0,
+                factor=16.0,
             )
         )
         in_list.append(
             fract_to_float(
                 intlist_to_int_2bytes(frame_dat[start_index + 24 : start_index + 26]),
-                conv_factor=16.0,
+                factor=16.0,
             )
         )
         in_list.append(
             fract_to_float(
                 intlist_to_int_2bytes(frame_dat[start_index + 26 : start_index + 28]),
-                conv_factor=16.0,
+                factor=16.0,
             )
         )
 
