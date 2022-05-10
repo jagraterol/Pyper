@@ -15,7 +15,9 @@
         "cmd_boresight": 4,
         "cmd_sensor_whoami": 5,
         "cmd_framerate": 6,
-        "cmd_units": 7,
+        "cmd_units": {
+            "cmd_number": 7
+        },
         "cmd_src_rotation": 8,
         "cmd_sync_mode": 9,
         "cmd_station_map": 10,
@@ -30,14 +32,14 @@
             "cmd_number": 18,
             "arg2": {
                 "standard": 0,
-                "accelerated": 1
+                "acceleration": 1
             }
         },
         "cmd_continuous_pno": {
             "cmd_number": 19,
             "arg2": {
                 "standard": 0,
-                "accelerated": 1
+                "acceleration": 1
             },
             "payload": {
                 "continuous_frames": 0,
@@ -59,5 +61,22 @@
         "cmd_sns_virtual": 32,
         "cmd_src_whoami": 33
     },
-    "max_size": 236
+    "max_size": 236,
+    "conversion_factor": {
+        "euler_degree": 180.0,
+        "euler_radian": 3.14159265358979323846,
+        "quaternion": 1.0,
+        "acceleration": 16.0
+    },
+    "viper_position_units": {
+        "inch": 0,
+        "ft": 1,
+        "cm": 2,
+        "m": 3
+    },
+    "viper_orientation_units": {
+        "euler_degree": 0,
+        "euler_radian": 1,
+        "quaternion": 2
+    }
 }
