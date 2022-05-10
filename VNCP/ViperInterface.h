@@ -654,7 +654,7 @@ typedef struct _SENFRAMEDATA
  *  byte index | name        | format         | description
  *  -----------|-------------|----------------|-----------------------------------------------
  *   0-3       | SFinfo      | bitfield       | Contains sensor information and pno UNITS information. See SFINFO.
- *   4-31      | pno_a       | structure      | Contains the sensors position, orientation and acceleration. See hNOA.
+ *   4-31      | pno_a       | structure      | Contains the sensors position, orientation and acceleration. See PNOA.
  *  Size: 32 bytes.
  */
 typedef struct _SENFRAMEDATA_A
