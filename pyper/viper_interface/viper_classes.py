@@ -80,9 +80,10 @@ class PolhemusViper:
         resp_list = resp.tolist()
         resp_crc16 = viper_crc16(resp_list[:-4])  # Remove the crc from the end
         resp_crc16_bytes = struct.pack(f"<{len(resp_crc16)}B", *resp_crc16)
+
         if resp_crc16_bytes != bytes(resp_list[-4:]):
             print("CRC16 error")
-            return None
+            return None, None
         else:
             return resp_list, timestamp
 
