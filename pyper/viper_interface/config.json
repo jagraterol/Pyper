@@ -1,0 +1,82 @@
+{
+    "cmd_actions": {
+        "cmd_action_set": 0,
+        "cmd_action_get": 1,
+        "cmd_action_reset": 2,
+        "cmd_action_ack": 3,
+        "cmd_action_nak": 4,
+        "cmd_action_nak_warning": 5
+    },
+    "cmd_viper": {
+        "cmd_hemisphere": 0,
+        "cmd_fitler": 1,
+        "cmd_tip_offset": 2,
+        "cmd_increment": 3,
+        "cmd_boresight": 4,
+        "cmd_sensor_whoami": 5,
+        "cmd_framerate": 6,
+        "cmd_units": {
+            "cmd_number": 7
+        },
+        "cmd_src_rotation": 8,
+        "cmd_sync_mode": 9,
+        "cmd_station_map": 10,
+        "cmd_stylus": 11,
+        "cmd_seuid": 12,
+        "cmd_dual_output": 13,
+        "cmd_serial_config": 14,
+        "cmd_block_cfg": 15,
+        "cmd_frame_count": 16,
+        "cmd_bit": 17,
+        "cmd_single_pno": {
+            "cmd_number": 18,
+            "arg2": {
+                "standard": 0,
+                "acceleration": 1
+            }
+        },
+        "cmd_continuous_pno": {
+            "cmd_number": 19,
+            "arg2": {
+                "standard": 0,
+                "acceleration": 1
+            },
+            "payload": {
+                "continuous_frames": 0,
+                "reset_frames": 1
+            }
+        },
+        "cmd_whoami": 20,
+        "cmd_initialize": 21,
+        "cmd_persist": 22,
+        "cmd_enable_map": 23,
+        "cmd_ftt_mode": 24,
+        "cmd_map_status": 25,
+        "cmd_sensor_blockcfg": 26,
+        "cmd_source_cfg": 27,
+        "cmd_predfilter_cfg": 28,
+        "cmd_predfilter_ext": 29,
+        "cmd_src_select": 30,
+        "cmd_sns_origin": 31,
+        "cmd_sns_virtual": 32,
+        "cmd_src_whoami": 33
+    },
+    "max_size": 236,
+    "conversion_factor": {
+        "euler_degree": 180.0,
+        "euler_radian": 3.14159265358979323846,
+        "quaternion": 1.0,
+        "acceleration": 16.0
+    },
+    "viper_position_units": {
+        "inch": 0,
+        "ft": 1,
+        "cm": 2,
+        "m": 3
+    },
+    "viper_orientation_units": {
+        "euler_degree": 0,
+        "euler_radian": 1,
+        "quaternion": 2
+    }
+}
