@@ -63,7 +63,7 @@
     },
     "max_size": 236,
     "conversion_factor": {
-        "euler_degree": 180.0,
+        "euler_degrees": 180.0,
         "euler_radian": 3.14159265358979323846,
         "quaternion": 1.0,
         "acceleration": 16.0
@@ -75,7 +75,7 @@
         "m": 3
     },
     "viper_orientation_units": {
-        "euler_degree": 0,
+        "euler_degrees": 0,
         "euler_radian": 1,
         "quaternion": 2
     }
