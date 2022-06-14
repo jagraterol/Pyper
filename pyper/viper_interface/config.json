@@ -21,7 +21,15 @@
         "cmd_src_rotation": 8,
         "cmd_sync_mode": 9,
         "cmd_station_map": 10,
-        "cmd_stylus": 11,
+        "cmd_stylus_mode": {
+            "cmd_number": 11,
+            "payload": {
+                "mark": 0,
+                "point": 1,
+                "line": 2,
+                "toggle": 3
+            }
+        },
         "cmd_seuid": 12,
         "cmd_dual_output": 13,
         "cmd_serial_config": 14,

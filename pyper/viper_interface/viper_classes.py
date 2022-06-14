@@ -194,3 +194,26 @@ class PolhemusViper:
             print(
                 f"The current position units are: {position[0][0]}\nThe current orientation units are: {orientation[0][0]}"
             )
+
+    def set_stylus_mode(self, stylus_mode):
+        """
+        Set the stylus function mode.
+
+        Parameters
+        --------
+        stylus_mode:str
+            The stylus mode to set. Accepts "mark", "point", "line", "toggle".
+        """
+        msg = self._construct_message(
+            viper_command="cmd_stylus_mode",
+            cmd_action="cmd_action_set",
+            payload=stylus_mode,
+        )
+
+        resp, _ = self._write_and_read(msg)
+        if resp is None:
+            pass
+        elif resp[16] == 3:
+            print(f"Stylus mode set to: {stylus_mode}")
+        elif resp[16] == 4:
+            print(f"Command not aknowledged")
