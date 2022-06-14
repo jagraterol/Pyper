@@ -101,7 +101,7 @@ class PolhemusViper:
         self.dev = dev
         self.endpoint = self.dev[0][(0, 0)][0]
 
-    def get_single_pno(self, pno_mode="standard", orientation="euler_degree"):
+    def get_single_pno(self, pno_mode="standard", orientation="euler_degrees"):
         """
         Function that reads a single PNO from Polhemus Viper and prints results as df
 
