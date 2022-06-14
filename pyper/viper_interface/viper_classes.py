@@ -37,9 +37,10 @@ class PolhemusViper:
         """
         viper_cmd = self.conf["cmd_viper"][viper_command].get("cmd_number")
         cmd_action = self.conf["cmd_actions"][cmd_action]
-        arg1 = self.conf["cmd_viper"][viper_command].get("arg1", {}).get(arg1, 0)
-        arg2 = self.conf["cmd_viper"][viper_command].get("arg2", {}).get(arg2, 0)
+        arg1 = self.conf["cmd_viper"][viper_command].get("arg1", {}).get(arg1, 0) # arg1, arg2, and payload depend on the viper_cmd
+        arg2 = self.conf["cmd_viper"][viper_command].get("arg2", {}).get(arg2, 0) 
         crc_size = 0
+
         if payload is None:
             cmd_frame = [self.seuid, viper_cmd, cmd_action, arg1, arg2, crc_size]
         else:
@@ -53,6 +54,7 @@ class PolhemusViper:
                 payload,
                 crc_size,
             ]
+
         cmd_packed = struct.pack(f"<{len(cmd_frame)}I", *cmd_frame)
         cmd_size = len(cmd_packed)  # Calculate the msg length
         cmd_size_bytes = struct.pack(f"<I", cmd_size)
@@ -107,7 +109,7 @@ class PolhemusViper:
 
         Parameters
         --------
-        pno_mode : str
+        pno_mode:str
             Type of PNO frame to return. Accepts "standard" and "acceleration". "acceleration" also returns the acceleration of the sensors in addition to the position and orientation. Default is "standard"
 
         Returns
@@ -174,6 +176,10 @@ class PolhemusViper:
             print("Continuous streaming stopped")
 
     def get_units(self):
+        """
+        Get the current units of the Polhemus Viper.
+        """
+
         msg = self._construct_message(
             viper_command="cmd_units", cmd_action="cmd_action_get"
         )
@@ -204,13 +210,19 @@ class PolhemusViper:
         stylus_mode:str
             The stylus mode to set. Accepts "mark", "point", "line", "toggle".
         """
-        msg = self._construct_message(
-            viper_command="cmd_stylus_mode",
-            cmd_action="cmd_action_set",
-            payload=stylus_mode,
-        )
+
+        try:
+            msg = self._construct_message(
+                viper_command="cmd_stylus_mode",
+                cmd_action="cmd_action_set",
+                payload=stylus_mode,
+            )
+        except KeyError:
+            print("Invalid stylus mode. Only accepts 'mark', 'point', 'line', 'toggle'")
+            return
 
         resp, _ = self._write_and_read(msg)
+        
         if resp is None:
             pass
         elif resp[16] == 3:
