@@ -98,7 +98,7 @@ def extract_data_from_acceleration_frame(
         n_sensors = frame_dat[20 : 20 + 4]
         timestamp = frame[0]
 
-    if orientation == "euler_degree":
+    if orientation == "euler_degrees":
         cols = [
             "sensor_n",
             "frames",
