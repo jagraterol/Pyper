@@ -5,7 +5,7 @@ import datetime
 import json
 import os
 
-from ..io.viper_crc16 import viper_crc16
+from .io.viper_crc16 import viper_crc16
 from pyper.io import io_utils
 
 
@@ -37,8 +37,10 @@ class PolhemusViper:
         """
         viper_cmd = self.conf["cmd_viper"][viper_command].get("cmd_number")
         cmd_action = self.conf["cmd_actions"][cmd_action]
-        arg1 = self.conf["cmd_viper"][viper_command].get("arg1", {}).get(arg1, 0) # arg1, arg2, and payload depend on the viper_cmd
-        arg2 = self.conf["cmd_viper"][viper_command].get("arg2", {}).get(arg2, 0) 
+        arg1 = (
+            self.conf["cmd_viper"][viper_command].get("arg1", {}).get(arg1, 0)
+        )  # arg1, arg2, and payload depend on the viper_cmd
+        arg2 = self.conf["cmd_viper"][viper_command].get("arg2", {}).get(arg2, 0)
         crc_size = 0
 
         if payload is None:
@@ -222,7 +224,7 @@ class PolhemusViper:
             return
 
         resp, _ = self._write_and_read(msg)
-        
+
         if resp is None:
             pass
         elif resp[16] == 3:
