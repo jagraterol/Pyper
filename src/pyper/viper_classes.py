@@ -7,7 +7,7 @@ import json
 import usb
 
 from .io.viper_crc16 import viper_crc16
-from pyper.io import decoding_utils
+from .io import decoding_utils
 
 
 class PolhemusViper:
