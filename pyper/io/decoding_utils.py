@@ -1,6 +1,6 @@
-import pandas as pd
 import struct
-import datetime
+
+import pandas as pd
 
 
 def fract_to_float(fract, factor):

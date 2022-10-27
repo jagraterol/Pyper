@@ -6,7 +6,7 @@ import json
 import os
 
 from .io.viper_crc16 import viper_crc16
-from pyper.io import io_utils
+from pyper.io import decoding_utils
 
 
 class PolhemusViper:
@@ -136,11 +136,11 @@ class PolhemusViper:
             pass
         else:
             if pno_mode == "standard":
-                df = io_utils.extract_data_from_standard_frame(
+                df = decoding_utils.extract_data_from_standard_frame(
                     resp, pno_mode=pno_mode, timestamp=timestamp
                 )
             elif pno_mode == "acceleration":
-                df = io_utils.extract_data_from_acceleration_frame(
+                df = decoding_utils.extract_data_from_acceleration_frame(
                     resp,
                     sampling_mode="single",
                     orientation=orientation,
@@ -223,12 +223,12 @@ class PolhemusViper:
             position = [
                 x
                 for x in self.conf["viper_position_units"].items()
-                if io_utils.intlist_to_int_4bytes(resp[-12 : -12 + 4]) in x
+                if decoding_utils.intlist_to_int_4bytes(resp[-12 : -12 + 4]) in x
             ]  # Get position
             orientation = [
                 x
                 for x in self.conf["viper_orientation_units"].items()
-                if io_utils.intlist_to_int_4bytes(resp[-12 + 4 : -12 + 8]) in x
+                if decoding_utils.intlist_to_int_4bytes(resp[-12 + 4 : -12 + 8]) in x
             ]  # Get orientation
             print(
                 f"The current position units are: {position[0][0]}\nThe current orientation units are: {orientation[0][0]}"
@@ -260,4 +260,4 @@ class PolhemusViper:
         elif resp[16] == 3:
             print(f"Stylus mode set to: {stylus_mode}")
         elif resp[16] == 4:
-            print(f"Command not aknowledged")
+            print(f"Command not acknowledged")
