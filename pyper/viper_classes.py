@@ -10,19 +10,18 @@ from pyper.io import io_utils
 
 
 class PolhemusViper:
-    """
-    Polhemus Viper class to control a Polhemus Viper Device
-    """
+    """Class for controlling the Polhemus Viper"""
 
     polhemus_usb_vid = 0xF44  # Polhemus USB Vendor ID
     viper_usb_pid = 0xBF01  # Polhemus USB Product ID
-    # [86, 80, 82, 67]  Preamble for commands "VPRC"
+
     viper_command_preamble = (
         b"\x56\x50\x52\x43"  # [86, 80, 82, 67]  Preamble for commands "VPRC"
     )
     viper_pno_preamble = b"\x56\x50\x52\x50"  # [86, 80, 82, 80] "VPRP"
-    class_path = os.path.dirname(os.path.realpath(__file__))
 
+    # Load the JSON file with the commands
+    class_path = os.path.dirname(os.path.realpath(__file__))
     with open(os.path.join(class_path, "config.json"), "r") as f:
         conf = json.load(f)
 
@@ -32,17 +31,18 @@ class PolhemusViper:
     def _construct_message(
         self, viper_command, cmd_action, arg1=None, arg2=None, payload=None
     ):
-        """
-        Construct a general message to send to the Polhemus Viper. This function should not be called directly.
+        """Construct a message to communicate with the Polhemus Viper. Should not be called directly.
+
+        The VNCP defines two types of frames: command frames and position and orientation frames (PNO). All frames start with with a 4-byte PREAMBLE and SIZE field, and end with a 4-BYTE CRC-16 field. The body of the frame is comprised either by the command or the PNO frame. The byte order is LITTLE ENDIAN.
+
+        This method work as follows:
+        It creates a list of integers with the PREAMBLE + BODY + CRC of 0. Using struct.pack a byte object is then returned. The SIZE of this object is calculated and turned into a byte object. Then the byte objects for the PREAMBLE, SIZE, and BODY (removing the CRC) are concatenated. This sequence is turned into a list of int from which the CRC is calculated. The CRC16 is turned into a list of int and then an bytes array of the sequence + CRC16 is created as the final message.
         """
         viper_cmd = self.conf["cmd_viper"][viper_command].get("cmd_number")
         cmd_action = self.conf["cmd_actions"][cmd_action]
-        arg1 = (
-            self.conf["cmd_viper"][viper_command].get("arg1", {}).get(arg1, 0)
-        )  # arg1, arg2, and payload depend on the viper_cmd
+        arg1 = self.conf["cmd_viper"][viper_command].get("arg1", {}).get(arg1, 0)
         arg2 = self.conf["cmd_viper"][viper_command].get("arg2", {}).get(arg2, 0)
         crc_size = 0
-
         if payload is None:
             cmd_frame = [self.seuid, viper_cmd, cmd_action, arg1, arg2, crc_size]
         else:
@@ -56,7 +56,6 @@ class PolhemusViper:
                 payload,
                 crc_size,
             ]
-
         cmd_packed = struct.pack(f"<{len(cmd_frame)}I", *cmd_frame)
         cmd_size = len(cmd_packed)  # Calculate the msg length
         cmd_size_bytes = struct.pack(f"<I", cmd_size)
@@ -74,8 +73,21 @@ class PolhemusViper:
         return msg
 
     def _write_and_read(self, msg, continuous=False):
-        """
-        Write a message to the Polhemus Viper and read from the endpoint. This function should not be called directly.
+        """Write a message to the Polhemus Viper and read the response from the endpoint. This function should not be called directly.
+
+        Parameters
+        ----------
+        msg : array.array
+            Output of the _construct_message() method
+
+        Returns
+        -------
+        resp_list : list of int
+        timestamp : datetime.datetime
+
+        or if the CRC16 check fails
+        None
+        None
         """
         if not continuous:
             self.dev.write(0x02, msg, 200)
@@ -92,9 +104,7 @@ class PolhemusViper:
             return resp_list, timestamp
 
     def connect(self):
-        """
-        Connect to the Polhemus device using PyUSB
-        """
+        """Connect to the Polhemus device using PyUSB"""
         dev = usb.core.find(
             idVendor=self.polhemus_usb_vid, idProduct=self.viper_usb_pid
         )
@@ -105,13 +115,12 @@ class PolhemusViper:
         self.dev = dev
         self.endpoint = self.dev[0][(0, 0)][0]
 
-    def get_single_pno(self, pno_mode="standard", orientation="euler_degrees"):
-        """
-        Function that reads a single PNO from Polhemus Viper and prints results as df
+    def get_single_pno(self, pno_mode="standard", orientation="euler_degree"):
+        """Read a single PNO from the Polhemus Viper.
 
         Parameters
         --------
-        pno_mode:str
+        pno_mode : str
             Type of PNO frame to return. Accepts "standard" and "acceleration". "acceleration" also returns the acceleration of the sensors in addition to the position and orientation. Default is "standard"
 
         Returns
@@ -141,6 +150,15 @@ class PolhemusViper:
             return df
 
     def start_continuous(self, pno_mode="standard", frame_counting="reset_frames"):
+        """Set the Polhemus Viper in continuous mode.
+
+        Parameters
+        ----------
+        pno_mode : str
+            Type of PNO frame to return. Accepts "standard" and "acceleration". "acceleration" also returns the acceleration of the sensors in addition to the position and orientation. Default is "standard"
+        frame_counting : str
+            Set the beginning frame number when starting continuous mode. Possible values are 'reset_frames' and 'continuous_frames'. If 'reset_frames' the first frame after starting the continuous sampling mode will have a value of 0, otherwise it will keep the sample number until that point. Default is'reset_frames'.
+        """
         msg = self._construct_message(
             viper_command="cmd_continuous_pno",
             cmd_action="cmd_action_set",
@@ -155,6 +173,21 @@ class PolhemusViper:
             print(resp)
 
     def read_continuous(self, stop_condition):
+        """Read the frames of a Polhemus Viper that is set in continuous sampling mode.
+
+        This method is meant to be run on a separate thread.
+
+        Parameters
+        ----------
+        stop_condition : threading.Event()
+            the Event object to be set when one wishes the to stop the thread.
+
+        Returns
+        -------
+        output_list : list of tup
+            The tuples are structured as (timestamp, list of int) where the timestamp is the time when the computer requested the frame and the list of int represents the frame message.
+
+        """
         output_list = []
 
         while not stop_condition.is_set():
@@ -167,6 +200,7 @@ class PolhemusViper:
         return output_list
 
     def stop_continuous(self):
+        """Stop the continuous sampling mode"""
         msg = self._construct_message(
             viper_command="cmd_continuous_pno", cmd_action="cmd_action_reset"
         )
@@ -178,10 +212,7 @@ class PolhemusViper:
             print("Continuous streaming stopped")
 
     def get_units(self):
-        """
-        Get the current units of the Polhemus Viper.
-        """
-
+        """Prints the current position and orientation units"""
         msg = self._construct_message(
             viper_command="cmd_units", cmd_action="cmd_action_get"
         )
@@ -204,12 +235,11 @@ class PolhemusViper:
             )
 
     def set_stylus_mode(self, stylus_mode):
-        """
-        Set the stylus function mode.
+        """Set the stylus function mode.
 
         Parameters
         --------
-        stylus_mode:str
+        stylus_mode : str
             The stylus mode to set. Accepts "mark", "point", "line", "toggle".
         """
 
