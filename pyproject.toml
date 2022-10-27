@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Pyper"
+description = "Control the Polhemus Viper with Python via USB"
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["polhemus", "viper"]
+license = {file = "LICENSE" }
+version = "0.0.1"
+dependencies = [
+    "pyusb",
+    "pandas",
+    "numpy"
+]
