@@ -5,6 +5,7 @@ Control the Polhemus Viper via USB with Python. This implementation is based on 
 The documentation and library is still a work in progress.
 
 ## Installation
+---------------
 At the present time, this repository can be installed locally in a conda environment with build:
 
 ```
@@ -12,11 +13,19 @@ At the present time, this repository can be installed locally in a conda environ
 
 git clone https://github.com/jagraterol/Pyper
 
-# With your conda environment active
+cd Pyper
+
 python -m build
+```
+This creates a dist folder inside the repository that contains a .whl file. Then:
+
+```
+cd dist
+pip install <.whl file>
 ```
 
 ## Note on the implementation
+-----------------------------
 Currently, not all the functionality is implemented. The current features are:
 - Requesting single frames
 - Requesting which units are currently set
@@ -87,3 +96,8 @@ for i in range(len(result)):
 ```
 Note that the conversion factors as defined by the VNCP are available in the conf attribute of PolhemusViper.
 
+## TODO
+-------
+- Implement stylus support.
+- Implement changing settings.
+- Refactor decoding functions.
