@@ -4,8 +4,7 @@ import struct
 
 
 def viper_crc16(data):
-    """
-    Function that returns the CRC16 as a list of int
+    """Calculate the CRC16 and return it as a list of int
 
     Parameters
     ----------
@@ -18,8 +17,9 @@ def viper_crc16(data):
     """
 
     def _viper_crc16(data, crc):
-        """
-        Meta function to calculate the CRC16
+        """Meta function to calculate the CRC16
+
+        It uses the formula defined in the VNCP
 
         Parameters
         ----------
@@ -51,6 +51,6 @@ def viper_crc16(data):
         crc = _viper_crc16(data[i], crc)
 
     # Pack the CRC16 and then extract the hex values as int
-    crc16 = [int(x) for x in struct.pack('<I', crc)]
+    crc16 = [int(x) for x in struct.pack("<I", crc)]
 
     return crc16
