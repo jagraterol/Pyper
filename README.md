@@ -5,11 +5,25 @@ Control the Polhemus Viper via USB with Python. This implementation is based on 
 The documentation and library is still a work in progress.
 
 ## Installation
-At the present time, the way to install it is to clone this git repo:
+At the present time, this repository can be installed locally in a conda environment with build:
 
 ```
-https://github.com/jagraterol/Pyper
+# pip install build
+
+git clone https://github.com/jagraterol/Pyper
+
+# With your conda environment active
+python -m build
 ```
+
+## Note on the implementation
+Currently, not all the functionality is implemented. The current features are:
+- Requesting single frames
+- Requesting which units are currently set
+- Starting the continuous sampling mode
+- Requesting frames when in continuous sampling mode
+- Stopping the continuous sampling mode
+- Translating the obtained frames
 
 ## Examples
 -----------
@@ -38,7 +52,7 @@ viper.get_single_pno(pno_mode="standard")
 viper.get_single_pno(pno_mode="acceleration")
 ```
 
-To record multiple frames, the read_continuous() method can be used. Note that this method is meant to be used in an extra thread and that the Viper device must be in continuous sampling mode. 
+To record multiple frames, the read_continuous() method can be used. Note that this method is meant to be run in an extra thread and that the Viper device must be in continuous sampling mode.
 ```
 from threading import Event
 from multiprocessing.pool import ThreadPool
@@ -53,6 +67,8 @@ time.sleep(2)
 
 stop_event.set()
 result = async_result.get()
+
+viper.stop_continuous()
 ```
 The output of the previous code is a list of tuples. Each tuple contains a timestamp that represent the time when the computer running the code requested the frame, and a list of integers (the message). Thus, result[0] == (timestamp, [0, 3, 4...]).
 
