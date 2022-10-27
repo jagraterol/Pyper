@@ -1,9 +1,10 @@
-import usb
+import os
 import array
 import struct
 import datetime
 import json
-import os
+
+import usb
 
 from .io.viper_crc16 import viper_crc16
 from pyper.io import decoding_utils

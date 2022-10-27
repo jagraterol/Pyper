@@ -1,6 +1,6 @@
-# Simple port of the two Viper VNCP C functions to calculate CRC16
-import numpy as np
 import struct
+
+import numpy as np
 
 
 def viper_crc16(data):
