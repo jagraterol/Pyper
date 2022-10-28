@@ -1,6 +1,6 @@
 # Pyper
 
-Control the Polhemus Viper via USB with Python. This implementation is based on the Viper Native Command Protocol (VNCP).
+Control the Polhemus Viper via USB with Python. This implementation is based on the Viper Native Command Protocol (VNCP). For the help files of the VNCP and C/C++ header files, please write an email to the Polhemus technical support: techsupport@polhemus.com
 
 The documentation and library is still a work in progress.
 
